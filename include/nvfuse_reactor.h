@@ -85,7 +85,7 @@ int reactor_sync_read_blk(struct io_target *target, long block, int count, void 
 int reactor_sync_write_blk(struct io_target *target, long block, int count, void *buf);
 int reactor_sync_flush(struct io_target *target);
 struct io_target * reactor_construct_targets(void);
-void reactor_get_opts(const char *config_file, const char *cpumask, struct spdk_app_opts *opts);
+void reactor_get_opts(const char *config_file, const char *cpumask, struct spdk_app_opts *opts, size_t opt_size);
 void blockdev_heads_init(void);
 void reactor_submit_on_core(void *arg1, void *arg2);
 void reactor_performance_dump(int io_time);

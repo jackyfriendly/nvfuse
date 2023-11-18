@@ -23,13 +23,14 @@
 #include <rte_lcore.h>
 
 #include "spdk/bdev.h"
-#include "spdk/copy_engine.h"
+#include "spdk/bdev_module.h"
+//#include "spdk/copy_engine.h"
 #include "spdk/endian.h"
 #include "spdk/env.h"
 #include "spdk/event.h"
 #include "spdk/log.h"
 #include "spdk/util.h"
-#include "spdk/io_channel.h"
+//#include "spdk/io_channel.h"
 #include "nvfuse_config.h"
 #include "nvfuse_debug.h"
 #include "nvfuse_io_manager.h"
@@ -460,7 +461,7 @@ struct io_target *reactor_construct_targets(void)
 
 		target->bdev = bdev;
 
-		rc = spdk_bdev_open(target->bdev, true, NULL, NULL, &target->desc);
+		rc = spdk_bdev_open_ext(target->bdev->name, true, NULL, NULL, &target->desc);
 		if (rc) {
 			SPDK_ERRLOG("Unable to open bdev\n");
 			free(target);
@@ -500,11 +501,11 @@ struct io_target *reactor_construct_targets(void)
 	return NULL;
 }
 
-void reactor_get_opts(const char *config_file, const char *cpumask, struct spdk_app_opts *opts)
+void reactor_get_opts(const char *config_file, const char *cpumask, struct spdk_app_opts *opts, size_t opt_size)
 {
 	assert(opts != NULL);
 
-	spdk_app_opts_init(opts);
+	spdk_app_opts_init(opts, opt_size);
 
 	opts->name = "bdevtest";
 	opts->config_file = config_file;
@@ -537,7 +538,7 @@ void reactor_submit_on_core(void *arg1, void *arg2)
 #endif
 	while (1) {
 		struct io_job *req;
-		
+
 		req = reactor_sq_get_req(task);
 		if (req == NULL)
 			return;
