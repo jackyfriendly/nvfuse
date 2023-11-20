@@ -176,12 +176,12 @@ int spdk_alloc_qpair(struct nvfuse_io_manager *io_manager)
 {
     struct ns_entry *ns_entry = g_namespaces;
     int i;
-        
+
     for (i = 0;i < SPDK_QUEUE_NUM;i++)
     {
         printf(" Alloc NVMe Queue = %d (%s)\n", i, spdk_qname_decode(i));
 
-        io_manager->spdk_queue[i] = spdk_nvme_ctrlr_alloc_io_qpair(ns_entry->ctrlr, 0);
+        io_manager->spdk_queue[i] = spdk_nvme_ctrlr_alloc_io_qpair(ns_entry->ctrlr, NULL, 0);
         if (io_manager->spdk_queue[i] == NULL) {
             printf("ERROR: spdk_nvme_ctrlr_alloc_io_qpair() failed\n");
             return -1;
@@ -608,9 +608,9 @@ int spdk_eal_init(s32 core_mask)
         ret = -1;
         goto RET;
     }
-        
+
     printf(" NVFUSE: ealargs[1] = %s\n", ealargs[1]);
-    
+
     ret = rte_eal_init(sizeof(ealargs) / sizeof(ealargs[0]), ealargs);
     if (ret < 0) {
         fprintf(stderr, "could not initialize dpdk\n");
@@ -637,7 +637,7 @@ static int spdk_open(struct nvfuse_io_manager *io_manager, int flags)
     spdk_env_opts_init(&opts);
     opts.name = "hello_world";
     opts.core_mask = io_manager->cpu_core_mask_str;
-    opts.dpdk_mem_size = 8192;
+    opts.mem_size = 8192;
     opts.shm_id = 1;
     spdk_env_init(&opts);
 
@@ -676,12 +676,12 @@ static int spdk_open(struct nvfuse_io_manager *io_manager, int flags)
         printf(" buf = %p\n", buf);
         while(1)
         {
-            spdk_read_blk(io_manager, 0, 1, buf);            
+            spdk_read_blk(io_manager, 0, 1, buf);
         }
         nvfuse_free_aligned_buffer(buf);
     }
     #endif
-    
+
     return 0;
 }
 

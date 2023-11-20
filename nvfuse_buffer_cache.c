@@ -33,16 +33,16 @@
 #include "rbtree.h"
 
 void nvfuse_move_buffer_type(struct nvfuse_superblock *sb, struct nvfuse_buffer_cache *bc, s32 desired_type, s32 tail){
-	struct nvfuse_buffer_manager *bm = sb->sb_bm;		
+	struct nvfuse_buffer_manager *bm = sb->sb_bm;
 	s32 res;
-	
+
 	if (bc->bc_list_type == desired_type)
 		return;
 
 	list_del(&bc->bc_list);
 	bm->bm_list_count[bc->bc_list_type]--;
 	assert(bc->bc_list_type < BUFFER_TYPE_NUM);
-	
+
 	bc->bc_list_type = desired_type;
 
 	if(tail)
@@ -71,14 +71,14 @@ void nvfuse_init_buffer_head(struct nvfuse_superblock *sb, struct nvfuse_buffer_
 	bc->bc_dirty = 0;
 	bc->bc_ino = 0;
 	bc->bc_lbno = 0;
-	bc->bc_load = 0;	
+	bc->bc_load = 0;
 	bc->bc_pno = 0;
 	bc->bc_ref = 0;
-	memset(bc->bc_buf, 0x00, CLUSTER_SIZE);	
+	memset(bc->bc_buf, 0x00, CLUSTER_SIZE);
 }
 
-struct nvfuse_buffer_cache *nvfuse_replcae_buffer(struct nvfuse_superblock *sb, u64 key){	
-	
+struct nvfuse_buffer_cache *nvfuse_replcae_buffer(struct nvfuse_superblock *sb, u64 key){
+
 	struct nvfuse_buffer_manager *bm = sb->sb_bm;
 	struct nvfuse_buffer_cache *bc;
 	struct list_head *remove_ptr;
@@ -129,7 +129,7 @@ struct nvfuse_buffer_cache *nvfuse_replcae_buffer(struct nvfuse_superblock *sb, 
 		}
 		assert(remove_ptr != &bm->bm_list[type]);
 	} while (1);
-	
+
 	//if (bc->bc_hit)
 	//	printf(" bc hit = %d ino = %d\n", bc->bc_hit, bc->bc_ino);
 	/* remove list */
@@ -165,7 +165,7 @@ struct nvfuse_buffer_cache *nvfuse_find_bc(struct nvfuse_superblock *sb, u64 key
 	struct nvfuse_buffer_manager *bm = sb->sb_bm;
 	struct nvfuse_buffer_cache *bc;
 	s32 status;
-	
+
 	bm->bm_cache_ref++;
 	bc = nvfuse_hash_lookup(sb->sb_bm, key);
 	if(bc)
@@ -187,12 +187,12 @@ struct nvfuse_buffer_cache *nvfuse_find_bc(struct nvfuse_superblock *sb, u64 key
 		bc = nvfuse_replcae_buffer(sb, key);
 		if (bc) 
 		{
-			nvfuse_init_buffer_head(sb, bc);			
+			nvfuse_init_buffer_head(sb, bc);
 			/* hash list insertion */
-			hlist_add_head(&bc->bc_hash, &bm->bm_hash[key % HASH_NUM]);			
+			hlist_add_head(&bc->bc_hash, &bm->bm_hash[key % HASH_NUM]);
 			bm->bm_hash_count[key % HASH_NUM]++;
 
-			status = BUFFER_TYPE_REF;				
+			status = BUFFER_TYPE_REF;
 			/* list insertion */
 			list_add(&bc->bc_list, &bm->bm_list[status]);
 			/* increase count of clean list */
@@ -204,7 +204,7 @@ struct nvfuse_buffer_cache *nvfuse_find_bc(struct nvfuse_superblock *sb, u64 key
 			bc->bc_bh_count = 0;
 		}
 	}
-	
+
 	return bc;
 }
 
@@ -220,21 +220,21 @@ struct nvfuse_buffer_head *nvfuse_alloc_buffer_head(struct nvfuse_superblock *sb
 		return NULL;
 	}
 	memset(bh, 0x00, sizeof(struct nvfuse_buffer_head));
-	INIT_LIST_HEAD(&bh->bh_bc_list);	
+	INIT_LIST_HEAD(&bh->bh_bc_list);
 	INIT_LIST_HEAD(&bh->bh_dirty_list);
 
 	rb_init_node(&bh->bh_dirty_rbnode);
-	
+
 	return bh;
 }
 
 void nvfuse_free_bc(struct nvfuse_superblock *sb, struct nvfuse_buffer_cache *bc)
-{	
+{
 	spdk_mempool_put(sb->bc_mempool, bc);
 }
 
 void nvfuse_free_buffer_head(struct nvfuse_superblock *sb, struct nvfuse_buffer_head *bh)
-{	
+{
 	spdk_mempool_put(sb->bh_mempool, bh);
 }
 
@@ -243,19 +243,19 @@ struct nvfuse_buffer_head *nvfuse_get_bh(struct nvfuse_superblock *sb, struct nv
 	struct nvfuse_buffer_head *bh;
 	struct nvfuse_buffer_cache *bc;
 	u64 key;
-		
+
 	bh = nvfuse_find_bh_in_ictx(sb, ictx, ino, lblock);
 	if (bh)
 	{
 		bc = bh->bh_bc;
 		assert(bh->bh_buf == bc->bc_buf);
 		goto FOUND_BH;
-	} 
+	}
 	else
 	{
 		bh = nvfuse_alloc_buffer_head(sb);
 		if (!bh)
-			return NULL;		
+			return NULL;
 	}
 
 	nvfuse_make_pbno_key(ino, lblock, &key, NVFUSE_BP_TYPE_DATA);
@@ -278,15 +278,15 @@ struct nvfuse_buffer_head *nvfuse_get_bh(struct nvfuse_superblock *sb, struct nv
 			sb->sb_read_blocks++;
 			sb->sb_read_ios++;
 			bc->bc_load = 1;
-			nvfuse_read_block(bc->bc_buf, bc->bc_pno, sb->io_manager);			
+			nvfuse_read_block(bc->bc_buf, bc->bc_pno, sb->io_manager);
 		}
 	}else if(!bc->bc_pno && sync_read && !bc->bc_load){
 		/* FIXME: how can we handle this case? */
 		printf(" Error: bc has no pblock addr \n");
-		bc->bc_pno = nvfuse_get_pbn(sb, ictx, ino, lblock);		
+		bc->bc_pno = nvfuse_get_pbn(sb, ictx, ino, lblock);
 		assert(0);
 	}
-	
+
 	bh->bh_bc = bc;
 	bh->bh_buf = bc->bc_buf;
 	bh->bh_ictx = ictx ? ictx : NULL;
@@ -296,7 +296,7 @@ FOUND_BH:;
 		nvfuse_set_bh_status(bh, BUFFER_STATUS_META);
 	else
 		nvfuse_clear_bh_status(bh, BUFFER_STATUS_META);
-	
+
 	bc->bc_ino = ino;
 	bc->bc_lbno = lblock;
 	bc->bc_ref++;
@@ -316,7 +316,7 @@ struct nvfuse_buffer_head *nvfuse_get_new_bh(struct nvfuse_superblock *sb, struc
 	struct nvfuse_buffer_cache *bc;
 	struct nvfuse_buffer_head *bh;
 	u64 key = 0;
-	
+
 	nvfuse_make_pbno_key(ino, lblock, &key, NVFUSE_BP_TYPE_DATA);
 	bc = nvfuse_find_bc(sb, key, lblock);
 	if (bc == NULL)
@@ -342,7 +342,7 @@ struct nvfuse_buffer_head *nvfuse_get_new_bh(struct nvfuse_superblock *sb, struc
 	bc->bc_lbno = lblock;
 	bc->bc_ref++;
 	assert(bc->bc_ref == 1);
-		
+
 	bh = nvfuse_alloc_buffer_head(sb);
 	if (!bh)
 		return NULL;
@@ -350,14 +350,14 @@ struct nvfuse_buffer_head *nvfuse_get_new_bh(struct nvfuse_superblock *sb, struc
 	bh->bh_bc = bc;
 	bh->bh_buf = bc->bc_buf;
 	bh->bh_ictx = ictx ? ictx : NULL;
-	
+
 	if (is_meta)
 		nvfuse_set_bh_status(bh, BUFFER_STATUS_META);
 	else
 		nvfuse_clear_bh_status(bh, BUFFER_STATUS_META);
 
 	nvfuse_mark_dirty_bh(sb, bh);
-		
+
 	return bh;
 }
 
@@ -370,7 +370,7 @@ struct nvfuse_buffer_cache *nvfuse_alloc_bc(struct nvfuse_superblock *sb){
 		return bc;
 	}
 	memset(bc, 0x00, sizeof(struct nvfuse_buffer_cache));
-		
+
 	return bc;
 }
 
@@ -382,7 +382,7 @@ s32 nvfuse_remove_buffer_cache(struct nvfuse_superblock *sb, s32 nr_buffers)
 	struct list_head *ptr, *temp;
 
 	assert (nr_buffers > 0);
-	
+
 	if (bm->bm_cache_size - nr_buffers < NVFUSE_INITIAL_BUFFER_SIZE_DATA)
 	{
 		printf(" Warninig: current buffer size = %.3f \n", (double)bm->bm_cache_size / 256);
@@ -402,7 +402,7 @@ s32 nvfuse_remove_buffer_cache(struct nvfuse_superblock *sb, s32 nr_buffers)
 
 		if (bc->bc_bh_count)
 			nvfuse_remove_bh_in_bc(sb, bc);
-		
+
 		assert(!bc->bc_bh_count);
 		assert(!bc->bc_dirty);
 		list_del(&bc->bc_list);
@@ -410,7 +410,7 @@ s32 nvfuse_remove_buffer_cache(struct nvfuse_superblock *sb, s32 nr_buffers)
 
 		nvfuse_free_aligned_buffer(bc->bc_buf);
 		nvfuse_free_bc(sb, bc);
-		
+
 		bm->bm_hash_count[HASH_NUM]--;
 		bm->bm_list_count[BUFFER_TYPE_UNUSED]--;
 		bm->bm_cache_size--;
@@ -418,7 +418,7 @@ s32 nvfuse_remove_buffer_cache(struct nvfuse_superblock *sb, s32 nr_buffers)
 		if (--nr_buffers == 0)
 			break;
 	}
-	
+
 	return 0;
 }
 
@@ -427,9 +427,9 @@ int nvfuse_add_buffer_cache(struct nvfuse_superblock *sb, int nr)
 {
 	struct nvfuse_buffer_manager *bm = sb->sb_bm;
 	struct nvfuse_buffer_cache *bc;
-	
+
 	assert (nr > 0);
-	
+
 	if (bm->bm_cache_size / 256 >= NVFUSE_MAX_BUFFER_SIZE_DATA)
 	{
 		printf(" Current buffer size = %.3f \n", (double)bm->bm_cache_size / 256);
@@ -464,7 +464,7 @@ int nvfuse_add_buffer_cache(struct nvfuse_superblock *sb, int nr)
 		bm->bm_hash_count[HASH_NUM]++;
 		bm->bm_list_count[BUFFER_TYPE_UNUSED]++;
 		bm->bm_cache_size++;
-	}	
+	}
 
 	//printf(" Buffer Size = %.3f MB\n", (double)bm->bm_cache_size / 256);
 	return 0;
@@ -493,11 +493,11 @@ int nvfuse_init_buffer_cache(struct nvfuse_superblock *sb, s32 buffer_size){
 		fprintf( stderr, " Error: allocation of bh mempool \n");
 		exit(0);
 	}
-	
+
 	sprintf(mempool_name, "nvfuse_bc");
 	if (spdk_process_is_primary())
 	{
-		mempool_size = NVFUSE_BC_MEMPOOL_TOTAL_SIZE;		
+		mempool_size = NVFUSE_BC_MEMPOOL_TOTAL_SIZE;
 		printf(" mempool for bc head size = %d \n", (int)(mempool_size * sizeof(struct nvfuse_buffer_cache)));
 		sb->bc_mempool = (struct spdk_mempool *)spdk_mempool_create(mempool_name, mempool_size,
 								sizeof(struct nvfuse_buffer_cache), NVFUSE_BC_MEMPOOL_CACHE_SIZE, -1);
@@ -508,17 +508,17 @@ int nvfuse_init_buffer_cache(struct nvfuse_superblock *sb, s32 buffer_size){
 		}
 	}
 	else
-	{		
+	{
 		printf(" mempool for bc head size = %d \n", (int)(mempool_size * sizeof(struct nvfuse_buffer_cache)));
 		sb->bc_mempool = (struct spdk_mempool *)rte_mempool_lookup(mempool_name);
 		if (sb->bc_mempool == NULL)
 		{
 			fprintf( stderr, " Error: allocation of bc mempool \n");
 			exit(0);
-		}		
+		}
 	}
 
-	bm = (struct nvfuse_buffer_manager *)spdk_malloc(sizeof(struct nvfuse_buffer_manager), 0, NULL);
+	bm = (struct nvfuse_buffer_manager *)spdk_malloc(sizeof(struct nvfuse_buffer_manager), 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_SHARE | SPDK_MALLOC_DMA);
 	if (bm == NULL) {
 		printf(" %s:%d: nvfuse_malloc error \n", __FUNCTION__, __LINE__);
 		return -1;
@@ -530,7 +530,7 @@ int nvfuse_init_buffer_cache(struct nvfuse_superblock *sb, s32 buffer_size){
 		INIT_LIST_HEAD(&bm->bm_list[i]);
 		bm->bm_list_count[i] = 0;
 	}
-		
+
 	for (i = 0; i < HASH_NUM + 1; i++) {
 		INIT_HLIST_HEAD(&bm->bm_hash[i]);
 		bm->bm_hash_count[i] = 0;
@@ -549,20 +549,20 @@ int nvfuse_init_buffer_cache(struct nvfuse_superblock *sb, s32 buffer_size){
 	}
 	if (bm->bm_cache_size < recommended_size)
 	{
-		printf(" Performance will degrade due to small buffer size (%.3fMB)\n", 
-				(double)bm->bm_cache_size * CLUSTER_SIZE / NVFUSE_MEGA_BYTES);		
-	} 
-	else 
+		printf(" Performance will degrade due to small buffer size (%.3fMB)\n",
+				(double)bm->bm_cache_size * CLUSTER_SIZE / NVFUSE_MEGA_BYTES);
+	}
+	else
 	{
-		printf(" Buffer cache size = %.3f MB\n", 
+		printf(" Buffer cache size = %.3f MB\n",
 			(double)bm->bm_cache_size * CLUSTER_SIZE / NVFUSE_MEGA_BYTES);
 	}
 #else
 	buffer_size_in_4k = buffer_size * (NVFUSE_MEGA_BYTES / CLUSTER_SIZE);
 	printf(" Set Default Buffer Cache = %dMB\n", buffer_size);
 #endif
-	assert(buffer_size_in_4k);	
-	
+	assert(buffer_size_in_4k);
+
 	if (!spdk_process_is_primary())
 	{
 		buffer_size_in_4k = nvfuse_send_alloc_buffer_req(sb->sb_nvh, buffer_size_in_4k);
@@ -581,15 +581,15 @@ int nvfuse_init_buffer_cache(struct nvfuse_superblock *sb, s32 buffer_size){
 			printf(" Error: buffer cannot be allocated. \n");
 			break;
 		}
-	}	
-	
+	}
+
 	//rte_malloc_dump_stats(stdout, NULL);
 
 	return 0;
 }
 
 void nvfuse_deinit_buffer_cache(struct nvfuse_superblock *sb)
-{	
+{
 	struct list_head *head;
 	struct list_head *ptr, *temp;
 	struct nvfuse_buffer_cache *bc;
@@ -604,7 +604,7 @@ void nvfuse_deinit_buffer_cache(struct nvfuse_superblock *sb)
 
 			if (bc->bc_bh_count)
 				nvfuse_remove_bh_in_bc(sb, bc);
-			
+
 			assert(!bc->bc_bh_count);
 			assert(!bc->bc_dirty);
 			list_del(&bc->bc_list);
@@ -619,12 +619,12 @@ void nvfuse_deinit_buffer_cache(struct nvfuse_superblock *sb)
 	{
 		nvfuse_send_dealloc_buffer_req(sb->sb_nvh, removed_count);
 	}
-	
+
 	//printf(" free bh mempool \n");
 	spdk_mempool_free(sb->bh_mempool);
 
 	if (spdk_process_is_primary())
-	{		
+	{
 		//printf(" free bc mempool \n");
 		spdk_mempool_free(sb->bc_mempool);
 	}
@@ -637,7 +637,7 @@ s32 nvfuse_mark_dirty_bh(struct nvfuse_superblock *sb, struct nvfuse_buffer_head
 {
 	if (bh == NULL)
 		return 0;
-		
+
 	bh->bh_bc->bc_dirty = 1;
 	set_bit(&bh->bh_status, BUFFER_STATUS_DIRTY);
 	if (bh->bh_ictx) {
@@ -720,7 +720,7 @@ s32 nvfuse_insert_dirty_bh_to_ictx(struct nvfuse_buffer_head *bh, struct nvfuse_
 	if (!list_empty(&bh->bh_dirty_list))
 		return 0;
 //#endif
-	
+
 	if (test_bit(&bh->bh_status, BUFFER_STATUS_META))
 	{
 		list_add(&bh->bh_dirty_list, &ictx->ictx_meta_bh_head);
@@ -765,7 +765,7 @@ s32 nvfuse_forget_bh(struct nvfuse_superblock *sb, struct nvfuse_buffer_head *bh
 	bc = bh->bh_bc;
 	bc->bc_ref--;
 	nvfuse_remove_bh_in_bc(sb, bc);
-	
+
 	bc->bc_dirty = 0;
 	bc->bc_load = 0;
 
@@ -792,9 +792,9 @@ s32 nvfuse_release_bh(struct nvfuse_superblock *sb, struct nvfuse_buffer_head *b
 
 	bc->bc_ref--;
 	assert(bc->bc_ref >= 0);
-	
+
 	if (dirty || bc->bc_dirty)
-	{		
+	{
 		bc->bc_dirty = 1;
 		bc->bc_load = 1;
 		nvfuse_move_buffer_type(sb, bc, BUFFER_TYPE_DIRTY, tail);
@@ -817,11 +817,11 @@ s32 nvfuse_release_bh(struct nvfuse_superblock *sb, struct nvfuse_buffer_head *b
 	{
 		nvfuse_insert_dirty_bh_to_ictx(bh, bh->bh_ictx);
 	}
-	else 
-	{		
+	else
+	{
 		nvfuse_free_buffer_head(sb, bh);
 	}
-		
+
 	return 0;
 }
 
@@ -842,7 +842,7 @@ void nvfuse_remove_bh_in_bc(struct nvfuse_superblock *sb, struct nvfuse_buffer_c
 
 		if (test_bit(&bh->bh_status, BUFFER_STATUS_META))
 		{
-			ictx->ictx_meta_dirty_count--;			
+			ictx->ictx_meta_dirty_count--;
 			assert(ictx->ictx_meta_dirty_count >= 0);
 		}
 		else
@@ -850,7 +850,7 @@ void nvfuse_remove_bh_in_bc(struct nvfuse_superblock *sb, struct nvfuse_buffer_c
 			ictx->ictx_data_dirty_count--;
 			assert(ictx->ictx_data_dirty_count >= 0);
 		}
-		
+
 		list_del(&bh->bh_bc_list);
 		list_del(&bh->bh_dirty_list);
 		/*
@@ -865,17 +865,17 @@ void nvfuse_remove_bh_in_bc(struct nvfuse_superblock *sb, struct nvfuse_buffer_c
 		else
 			rb_erase(&bh->bh_dirty_rbnode, &ictx->ictx_data_bh_rbroot);
 #endif
-		
+
 		/* decrement count in buffer cache node */
 		bc->bc_bh_count--;
-	
+
 		/* FIXME: */
 		if (ictx->ictx_bh == bh) {
 			ictx->ictx_bh = NULL;
 			bc->bc_ref--;
 		}
 
-		/* removal of buffer head */		
+		/* removal of buffer head */
 		nvfuse_free_buffer_head(sb, bh);
 
 		/* move inode context to clean list */
@@ -893,7 +893,7 @@ void nvfuse_remove_bh_in_bc(struct nvfuse_superblock *sb, struct nvfuse_buffer_c
 			nvfuse_move_ictx_type(sb, ictx, BUFFER_TYPE_CLEAN);
 		}
 	}
-	
+
 	assert(list_empty(head));
 }
 
@@ -941,7 +941,7 @@ struct nvfuse_buffer_head *nvfuse_find_bh_in_ictx(struct nvfuse_superblock *sb,
 		}
 	}
 #endif
-	
+
 #ifdef USE_RBNODE
 	bh = nvfuse_rbnode_search(&ictx->ictx_meta_bh_rbroot, key);
 	if (bh)
@@ -1012,7 +1012,7 @@ struct nvfuse_inode_ctx *nvfuse_ictx_hash_lookup(struct nvfuse_ictx_manager *ict
 	struct nvfuse_inode_ctx *ictx;
 
 	head = &ictxc->ictxc_hash[ino % HASH_NUM];
-	hlist_for_each(node, head) 
+	hlist_for_each(node, head)
 	{
 		ictx = hlist_entry(node, struct nvfuse_inode_ctx, ictx_hash);
 		if (ictx->ictx_ino == ino)
@@ -1050,8 +1050,8 @@ struct nvfuse_inode_ctx *nvfuse_replcae_ictx(struct nvfuse_superblock *sb)
 	remove_ptr = (struct list_head *)(&ictxc->ictxc_list[type])->prev;
 	do {
 		ictx = list_entry(remove_ptr, struct nvfuse_inode_ctx, ictx_cache_list);
-		if (ictx->ictx_ref == 0 && 
-		    ictx->ictx_data_dirty_count == 0 && 
+		if (ictx->ictx_ref == 0 &&
+		    ictx->ictx_data_dirty_count == 0 &&
 		    ictx->ictx_meta_dirty_count == 0)
 			break;
 
@@ -1103,7 +1103,7 @@ void nvfuse_insert_ictx(struct nvfuse_superblock *sb, struct nvfuse_inode_ctx *i
 	/* initialize key and type values*/
 	ictx->ictx_ino = ino;
 	ictx->ictx_type = type;
-	
+
 	if (type == BUFFER_TYPE_CLEAN && (ictx->ictx_data_dirty_count || ictx->ictx_meta_dirty_count))
 	{
 		printf("debug");
@@ -1116,7 +1116,7 @@ void nvfuse_init_ictx(struct nvfuse_inode_ctx *ictx)
 	ictx->ictx_ino = 0;
 	ictx->ictx_inode = NULL;
 	ictx->ictx_bh = NULL;
-		
+
 	INIT_LIST_HEAD(&ictx->ictx_meta_bh_head);
 	INIT_LIST_HEAD(&ictx->ictx_data_bh_head);
 #ifdef USE_RBNODE
@@ -1140,7 +1140,7 @@ struct nvfuse_inode_ctx *nvfuse_get_ictx(struct nvfuse_superblock *sb, inode_t i
 
 	ictx = nvfuse_ictx_hash_lookup(sb->sb_ictxc, ino);
 	if (ictx) /* in case of cache hit */
-	{ 
+	{
 		// cache move to mru position
 		list_del(&ictx->ictx_cache_list);
 		list_add(&ictx->ictx_cache_list, &ictxc->ictxc_list[ictx->ictx_type]);
@@ -1150,11 +1150,11 @@ struct nvfuse_inode_ctx *nvfuse_get_ictx(struct nvfuse_superblock *sb, inode_t i
 			assert(0);
 		}
 	}
-	else 
+	else
 	{
 		ictx = nvfuse_replcae_ictx(sb);
 		if (ictx) {
-			// init ictx structure			
+			// init ictx structure
 			INIT_LIST_HEAD(&ictx->ictx_data_bh_head);
 			INIT_LIST_HEAD(&ictx->ictx_meta_bh_head);
 
@@ -1183,7 +1183,7 @@ void nvfuse_move_ictx_type(struct nvfuse_superblock *sb, struct nvfuse_inode_ctx
 	ictxc->ictxc_list_count[ictx->ictx_type]--;
 
 	ictx->ictx_type = desired_type;
-	
+
 	list_add(&ictx->ictx_cache_list, &ictxc->ictxc_list[ictx->ictx_type]);
 	ictxc->ictxc_list_count[ictx->ictx_type]++;
 
@@ -1204,25 +1204,25 @@ s32 nvfuse_release_ictx(struct nvfuse_superblock *sb, struct nvfuse_inode_ctx *i
 {
 	if (ictx == NULL)
 		return 0;
-		
+
 	ictx->ictx_ref--;
 
 	assert(ictx->ictx_ref >= 0);
 	/* dirty means that a given inode has dirty pages to be written to underlying storage */
 	if (dirty || test_bit(&ictx->ictx_status, BUFFER_STATUS_DIRTY))
-	{		
+	{
 		if (!ictx->ictx_data_dirty_count && !ictx->ictx_meta_dirty_count)
 		{
 			printf(" Warning: ictx doesn't have dirty data. \n");
 		}
 
-		set_bit(&ictx->ictx_status, BUFFER_STATUS_DIRTY);		
+		set_bit(&ictx->ictx_status, BUFFER_STATUS_DIRTY);
 		nvfuse_move_ictx_type(sb, ictx, BUFFER_TYPE_DIRTY);
 	}
 	else
 	{
-		assert(!ictx->ictx_data_dirty_count && !ictx->ictx_meta_dirty_count);		
-		nvfuse_move_ictx_type(sb, ictx, BUFFER_TYPE_CLEAN);	
+		assert(!ictx->ictx_data_dirty_count && !ictx->ictx_meta_dirty_count);
+		nvfuse_move_ictx_type(sb, ictx, BUFFER_TYPE_CLEAN);
 	}
 
 	return 0;
@@ -1235,8 +1235,8 @@ s32 nvfuse_free_ictx(struct nvfuse_superblock *sb, struct nvfuse_inode_ctx *ictx
 
 	ictx->ictx_ref--;
 	assert(ictx->ictx_ref >= 0);
-	assert(!ictx->ictx_data_dirty_count && !ictx->ictx_meta_dirty_count);		
-	nvfuse_move_ictx_type(sb, ictx, BUFFER_TYPE_UNUSED);	
+	assert(!ictx->ictx_data_dirty_count && !ictx->ictx_meta_dirty_count);
+	nvfuse_move_ictx_type(sb, ictx, BUFFER_TYPE_UNUSED);
 
 	return 0;
 }
@@ -1247,7 +1247,7 @@ int nvfuse_init_ictx_cache(struct nvfuse_superblock *sb)
 	struct nvfuse_ictx_manager *ictxc;
 	s32 i;
 
-	ictxc = (struct nvfuse_ictx_manager *)spdk_malloc(sizeof(struct nvfuse_ictx_manager), 0, NULL);
+	ictxc = (struct nvfuse_ictx_manager *)spdk_malloc(sizeof(struct nvfuse_ictx_manager), 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_SHARE | SPDK_MALLOC_DMA);
 	if (ictxc == NULL) {
 		printf(" %s:%d: nvfuse_malloc error \n", __FUNCTION__, __LINE__);
 		return -1;
@@ -1265,8 +1265,8 @@ int nvfuse_init_ictx_cache(struct nvfuse_superblock *sb)
 		ictxc->ictxc_hash_count[i] = 0;
 	}
 
-	ictxc->ictx_buf = spdk_malloc(sizeof(struct nvfuse_inode_ctx) * NVFUSE_ICTXC_SIZE, 0, NULL);
-	
+	ictxc->ictx_buf = spdk_malloc(sizeof(struct nvfuse_inode_ctx) * NVFUSE_ICTXC_SIZE, 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_SHARE | SPDK_MALLOC_DMA);
+
 	printf(" ictx cache size = %d \n", (int)sizeof(struct nvfuse_inode_ctx) * NVFUSE_ICTXC_SIZE);
 
 	/* alloc unsed list buffer cache */
@@ -1298,7 +1298,7 @@ void nvfuse_deinit_ictx_cache(struct nvfuse_superblock *sb)
 		head = &sb->sb_ictxc->ictxc_list[type];
 		list_for_each_safe(ptr, temp, head) {
 			ictx = (struct nvfuse_inode_ctx *)list_entry(ptr, struct nvfuse_inode_ctx, ictx_cache_list);
-			list_del(&ictx->ictx_cache_list);			
+			list_del(&ictx->ictx_cache_list);
 			removed_count++;
 		}
 	}

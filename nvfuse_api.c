@@ -25,7 +25,8 @@
 #if NVFUSE_OS == NVFUSE_OS_LINUX
 #include <dirent.h>
 #include <sys/uio.h>
-#endif 
+#include <sys/sysmacros.h>
+#endif
 
 #ifdef SPDK_ENABLED
 #include "spdk/nvme.h"
@@ -76,7 +77,7 @@ s32 nvfuse_is_core_option(s8 option)
 	s8 *core_option_str = nvfuse_get_core_options();
 
 	while(*core_option_str)
-	{		
+	{
 		if (':' == *core_option_str)
 		{
 			core_option_str++;
@@ -86,7 +87,7 @@ s32 nvfuse_is_core_option(s8 option)
 		if (option == *core_option_str++)
 			return 1;
 	}
-	
+
 	return 0;
 }
 
@@ -117,7 +118,7 @@ void nvfuse_distinguish_core_and_app_options(int argc, char **argv,
 			{
 				core_argv[core_argc++] = argv[i++];
 				while (i < argc && argv[i][0] != '-')
-					core_argv[core_argc++] = argv[i++];				
+					core_argv[core_argc++] = argv[i++];
 			}
 			else
 			{
@@ -140,7 +141,7 @@ void nvfuse_distinguish_core_and_app_options(int argc, char **argv,
 	{
 		printf("%d %s\n", i, app_argv[i]);
 	}
-	
+
 	printf(" Core Args \n");
 	for (i = 0;i < core_argc; i++)
 	{
@@ -152,18 +153,18 @@ s32 nvfuse_configure_spdk(struct nvfuse_io_manager *io_manager, struct nvfuse_ip
 {
 	s32 ret;
 
-	/* Initialize IO Manager */		
+	/* Initialize IO Manager */
 	io_manager->type = IO_MANAGER_SPDK;
 	io_manager->cpu_core_mask = cpu_core_mask;
 	sprintf(io_manager->cpu_core_mask_str, "%d", cpu_core_mask);
 
 	nvfuse_init_spdk(io_manager, "SPDK", "SPDK", qdepth);
 
-	/* open I/O manager */	
+	/* open I/O manager */
 	io_manager->io_open(io_manager, 0);
 
 	printf(" total blks = %ld \n", (long)io_manager->total_blkcount);
-		
+
 	ret = nvfuse_ipc_init(ipc_ctx);
 	if (ret < 0) {
 		printf(" Error: ipc_init()\n");
@@ -200,10 +201,10 @@ s32 nvfuse_parse_args(int argc, char **argv, struct nvfuse_params *params)
 		switch (op) {
 		case ' ':
 			continue;
-		case 'c': 
-			cpu_core_mask = atoi(optarg);		
+		case 'c':
+			cpu_core_mask = atoi(optarg);
 			break;
-		case 'f':		
+		case 'f':
 			need_format = 1;
 			break;
 		case 'm':
@@ -214,8 +215,8 @@ s32 nvfuse_parse_args(int argc, char **argv, struct nvfuse_params *params)
 			break;
 
 		#if 0
-		case 't':			
-			//printf(" type = %s\n", optarg);		
+		case 't':
+			//printf(" type = %s\n", optarg);
 			if (!strcmp("spdk", optarg))
 			{
 				#ifdef SPDK_ENABLED
@@ -224,7 +225,7 @@ s32 nvfuse_parse_args(int argc, char **argv, struct nvfuse_params *params)
 				fprintf(stderr, "Please, rebuild with both DPDK_DIR and SPDK_ROOT_DIR paths.\n");
 				return NULL;
 				#endif
-			}		
+			}
 			else if (!strcmp("block", optarg))
 			{
 				io_manager_type = IO_MANAGER_UNIXIO;
@@ -238,7 +239,7 @@ s32 nvfuse_parse_args(int argc, char **argv, struct nvfuse_params *params)
 				io_manager_type = IO_MANAGER_RAMDISK;
 			}
 			else
-			{	
+			{
 				goto PRINT_USAGE;
 			}
 			break;
@@ -272,14 +273,14 @@ s32 nvfuse_parse_args(int argc, char **argv, struct nvfuse_params *params)
 			goto PRINT_USAGE;
 		}
 	}
-	
+
 	if (!spdk_process_is_primary() && appname == NULL) {
 		fprintf(stderr, "\n Application name with -a option is required.\n");
 		goto PRINT_USAGE;
 	}
 
 	/* configure parametres received from cmmand line */
-	if (appname)	
+	if (appname)
 		strcpy(params->appname, appname);
 	else
 		strcpy(params->appname, "primary");
@@ -312,26 +313,26 @@ struct nvfuse_handle *nvfuse_create_handle(struct nvfuse_io_manager *io_manager,
 											struct nvfuse_ipc_context *ipc_ctx, 
 											struct nvfuse_params *params)
 {
-	struct nvfuse_handle *nvh;		
-	s32 ret;	
-		
+	struct nvfuse_handle *nvh;
+	s32 ret;
+
 	/* allocation of nvfuse handle */
-	nvh = spdk_zmalloc(sizeof(struct nvfuse_handle), 0, NULL);
+	nvh = spdk_zmalloc(sizeof(struct nvfuse_handle), 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_SHARE | SPDK_MALLOC_DMA);
 	if (nvh == NULL)
 	{
 		printf(" Error: nvfuse_create_handle due to lack of free memory \n");
 		return NULL;
 	}
 	memset(nvh, 0x00, sizeof(struct nvfuse_handle));
-	
+
 	/* copy instance of io_manager */
 	memcpy(&nvh->nvh_iom, io_manager, sizeof(struct nvfuse_io_manager));
 	/* Initialization of Perf Stat for Dev */
 	memset(&nvh->nvh_iom.perf_stat_dev, 0x00, sizeof(union perf_stat));
-	
+
 	/* copy instance of ipc_ctx */
 	memcpy(&nvh->nvh_ipc_ctx, ipc_ctx, sizeof(struct nvfuse_ipc_context));
-	
+
 	/* copy instance of ipc_ctx */
 	memcpy(&nvh->nvh_params, params, sizeof(struct nvfuse_params));
 
@@ -347,7 +348,7 @@ struct nvfuse_handle *nvfuse_create_handle(struct nvfuse_io_manager *io_manager,
 
 	/* file system format */
 	if (nvh->nvh_params.need_format)
-	{		
+	{
 		if (spdk_process_is_primary())
 		{
 			ret = nvfuse_format(nvh);
@@ -363,18 +364,18 @@ struct nvfuse_handle *nvfuse_create_handle(struct nvfuse_io_manager *io_manager,
 	}
 
 	/* file system mount */
-	if (nvh->nvh_params.need_mount) {	
+	if (nvh->nvh_params.need_mount) {
 		memset(&nvh->nvh_sb, 0x00, sizeof(struct nvfuse_superblock));
 		nvh->nvh_sb.sb_nvh = nvh; /* temporary */
 		ret = nvfuse_mount(nvh);
 		if (ret < 0) {
 			printf(" Error: mount() \n");
 			return NULL;
-		}		
+		}
 	}
-	
+
 	nvh->nvh_sb.sb_control_plane_buffer_size = nvh->nvh_params.buffer_size * (NVFUSE_MEGA_BYTES / CLUSTER_SIZE);
-	nvh->nvh_sb.sb_is_primary_process = spdk_process_is_primary() ? 1 : 0;	
+	nvh->nvh_sb.sb_is_primary_process = spdk_process_is_primary() ? 1 : 0;
 
 	return nvh;
 }
@@ -1144,10 +1145,10 @@ s32 nvfuse_gather_bh(struct nvfuse_superblock *sb, s32 fid, const s8 *user_buf, 
 		lblock = NVFUSE_SIZE_TO_BLK(curoffset);
 		offset = curoffset & (CLUSTER_SIZE - 1);
 		remain = CLUSTER_SIZE - offset;
-		
+
 		if (remain > count)
 			remain = count;
-					
+
 		bh = nvfuse_get_bh(sb, ictx, inode->i_ino, lblock, WRITE, NVFUSE_TYPE_DATA);
 		if (bh == NULL)
 		{
@@ -1158,11 +1159,11 @@ s32 nvfuse_gather_bh(struct nvfuse_superblock *sb, s32 fid, const s8 *user_buf, 
 		count -= remain;
 		(*aio_bh_count)++;
 
-		list_add(&bh->bh_aio_list, aio_bh_head);	
+		list_add(&bh->bh_aio_list, aio_bh_head);
 	}
-	
+
 	nvfuse_release_inode(sb, ictx, CLEAN);
-	
+
 	return 0;
 }
 

@@ -54,12 +54,12 @@
 #include "nvfuse_dirhash.h"
 
 struct nvfuse_superblock * nvfuse_read_super(struct nvfuse_handle *nvh)
-{		
+{
 	return &nvh->nvh_sb;
 }
 
 void nvfuse_release_super(struct nvfuse_superblock *sb)
-{	
+{
 	return;
 }
 
@@ -92,7 +92,7 @@ struct nvfuse_inode_ctx *nvfuse_read_inode(struct nvfuse_superblock *sb, struct 
 	struct nvfuse_buffer_head *bh;
 	lbno_t block;
 	lbno_t offset;
-	
+
 	if (ino < ROOT_INO)
 		return NULL;
 
@@ -1644,7 +1644,7 @@ s32 nvfuse_mount(struct nvfuse_handle *nvh)
 		return -1;
 	}
 
-	sb->sb_file_table = (struct nvfuse_file_table *)spdk_malloc(sizeof(struct nvfuse_file_table) * MAX_OPEN_FILE, 0, NULL);
+	sb->sb_file_table = (struct nvfuse_file_table *)spdk_malloc(sizeof(struct nvfuse_file_table) * MAX_OPEN_FILE, 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_SHARE | SPDK_MALLOC_DMA);
 	if (sb->sb_file_table == NULL) {
 		printf(" %s:%d: nvfuse_malloc error \n", __FUNCTION__, __LINE__);
 		return -1;
@@ -1774,7 +1774,7 @@ s32 nvfuse_mount(struct nvfuse_handle *nvh)
 		sb->sb_umount = 0;
 	}
 
-	sb->sb_ss = (struct nvfuse_segment_summary *)spdk_malloc(sizeof(struct nvfuse_segment_summary) * sb->sb_segment_num, 0, NULL);
+	sb->sb_ss = (struct nvfuse_segment_summary *)spdk_malloc(sizeof(struct nvfuse_segment_summary) * sb->sb_segment_num, 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_SHARE | SPDK_MALLOC_DMA);
 	if (sb->sb_ss == NULL) 
 	{
 		printf("nvfuse_malloc error = %d\n", __LINE__);
