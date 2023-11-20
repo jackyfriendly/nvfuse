@@ -151,7 +151,7 @@ s32 nvfuse_configure_spdk(struct nvfuse_ipc_context *ipc_ctx, struct nvfuse_para
 {
 	sprintf(params->cpu_core_mask_str, "%d", params->cpu_core_mask);
 
-	reactor_get_opts(params->config_file, params->cpu_core_mask_str, &params->opts);
+	reactor_get_opts(params->config_file, params->cpu_core_mask_str, &params->opts, sizeof(struct spdk_app_opts));
 
 #ifdef NVFUSE_USE_CEPH_SPDK
 	spdk_app_init(&params->opts);

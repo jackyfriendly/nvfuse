@@ -1,6 +1,6 @@
 
 DEBUG = -g -DDEBUG
-OPTIMIZATION = -O3
+OPTIMIZATION = -O0
 WARNING_OPTION = -Wall -Werror -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -Wno-sign-compare
 
 # Please use the below definition when the spdk forked in the ceph repo is deploy

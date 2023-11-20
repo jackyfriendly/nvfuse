@@ -48,7 +48,7 @@ enum ipc_opcode {
 struct app_register_req {
 	s32 opcode;     // [4]
 	s32 chan_id;
-	s8 name[32];    // [24]
+	s8 name[256];    // [24]
 	s32 tag1;       // [32]
 	s32 tag2;       // [36]
 };
@@ -86,7 +86,7 @@ struct app_unregister_cpl {
 struct superblock_copy_req {
 	s32 opcode;
 	s32 chan_id;
-	s8 name[32];
+	s8 name[256];
 	s32 tag1;
 	s32 tag2;
 };

@@ -22,7 +22,7 @@ include $(NVFUSE_ROOT_DIR)/spdk_config.mk
 TARGET = control_plane_proc
 SRCS   = control_plane_proc.o
 
-LDFLAGS += -lm -lpthread -laio -lrt -luuid
+LDFLAGS += -lcrypto -luuid -libverbs -lrdmacm -lm -lpthread -laio -lrt
 CFLAGS += $(SPDK_CFLAGS) -I$(NVFUSE_ROOT_DIR)/include -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_GNU_SOURCE
 CFLAGS += $(WARNING_OPTION)
 

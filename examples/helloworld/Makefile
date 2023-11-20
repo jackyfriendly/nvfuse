@@ -22,7 +22,7 @@ include $(NVFUSE_ROOT_DIR)/spdk_config.mk
 TARGET = helloworld
 SRCS   = helloworld.o
 
-LDFLAGS += -lm -lpthread -laio -lrt -luuid
+LDFLAGS += -libverbs -lrdmacm -lcrypto -luuid -lm -lpthread -laio -lrt
 CFLAGS += $(SPDK_CFLAGS) -I$(NVFUSE_ROOT_DIR)/include -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_GNU_SOURCE
 CFLAGS += $(WARNING_OPTION)
 

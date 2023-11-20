@@ -22,7 +22,7 @@ include $(NVFUSE_ROOT_DIR)/spdk_config.mk
 TARGET = fuse_example
 SRCS   = fuse_example.o
 
-LDFLAGS += -lfuse -lm -lpthread -laio -lrt -luuid
+LDFLAGS += -lfuse -luuid -libverbs -lrdmacm -lcrypto -lm -lpthread -laio -lrt
 CFLAGS += $(SPDK_CFLAGS) -I$(NVFUSE_ROOT_DIR)/include -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -I/usr/include/fuse
 CFLAGS += $(WARNING_OPTION)
 

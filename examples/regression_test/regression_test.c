@@ -75,7 +75,7 @@ void rt_usage(char *cmd);
 static int rt_main(void *arg);
 static void print_stats(s32 num_cores, s32 num_tc);
 void regression_run(void *arg1, void *arg2);
-void reactor_run(void *arg1, void *arg2);
+void reactor_run(void* arg);
 int main(int argc, char *argv[]);
 
 void rt_progress_reset(void)
@@ -1111,7 +1111,7 @@ void regression_run(void *arg1, void *arg2)
 	spdk_app_stop(0);
 }
 
-void reactor_run(void *arg1, void *arg2)
+void reactor_run(void *arg)
 {
 	struct spdk_event *event;
 	u32 i;
@@ -1173,9 +1173,9 @@ int main(int argc, char *argv[])
 	printf(" launch primary lcore = %d \n", rte_lcore_id());
 
 #ifndef NVFUSE_USE_CEPH_SPDK
-	spdk_app_start(&g_params->opts, reactor_run, NULL, NULL);
+	spdk_app_start(&g_params->opts, reactor_run, NULL);
 #else
-	spdk_app_start(reactor_run, NULL, NULL);
+	spdk_app_start(reactor_run, NULL);
 #endif
 
 	spdk_app_fini();

@@ -508,7 +508,7 @@ void reactor_get_opts(const char *config_file, const char *cpumask, struct spdk_
 	spdk_app_opts_init(opts, opt_size);
 
 	opts->name = "bdevtest";
-	opts->config_file = config_file;
+	opts->json_config_file = config_file;
 	opts->reactor_mask = cpumask;
 }
 

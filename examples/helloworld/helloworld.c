@@ -98,7 +98,7 @@ RET:
 	spdk_app_stop(0);
 }
 
-static void reactor_run(void *arg1, void *arg2)
+static void reactor_run(void *arg)
 {
 	struct spdk_event *event;
 	u32 i;
@@ -127,9 +127,9 @@ int main(int argc, char *argv[])
 		return -1;
 
 #ifndef NVFUSE_USE_CEPH_SPDK
-	spdk_app_start(&params.opts, reactor_run, NULL, NULL);
+	spdk_app_start(&params.opts, reactor_run, NULL);
 #else
-	spdk_app_start(reactor_run, NULL, NULL);
+	spdk_app_start(reactor_run, NULL);
 #endif
 
 	spdk_app_fini();

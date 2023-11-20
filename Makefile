@@ -27,7 +27,7 @@ nvfuse_ipc_ring.o nvfuse_control_plane.o \
 nvfuse_dep.o nvfuse_flushwork.o \
 nvfuse_reactor.o nvfuse_xattr.o
 
-LDFLAGS += -lm -lpthread -laio -lrt -luuid
+LDFLAGS += -lm -lpthread -laio -lrt -luuid -lcrypto
 CFLAGS = $(SPDK_CFLAGS) -Iinclude -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE
 CFLAGS += -march=native -m64
 CFLAGS += $(WARNING_OPTION) -fPIC
@@ -46,7 +46,8 @@ CC=gcc
 	@$(RM) $@
 	$(CC) $(OPTIMIZATION) $(CEPH_COMPILE) $(DEBUG) -c -D_GNU_SOURCE $(CFLAGS) -o $@ -ldl $<
 
-all:  $(LIB_NVFUSE) xattr_test reactor helloworld libfuse regression_test perf control_plane_proc fsync_test create_1m_files mkfs #fio_plugin 
+#all:  $(LIB_NVFUSE) reactor helloworld libfuse regression_test perf control_plane_proc fsync_test create_1m_files mkfs #fio_plugin 
+all:  $(LIB_NVFUSE) helloworld libfuse regression_test perf control_plane_proc fsync_test create_1m_files mkfs #fio_plugin 
 
 $(LIB_NVFUSE)	:	$(OBJS)
 	$(AR) rcv $@ $(OBJS)
@@ -87,7 +88,7 @@ control_plane_proc:
 clean:
 	rm -f *.o *.a *~ $(LIB_NVFUSE)
 	make -C examples/fio_plugin/ clean
-	make -C examples/reactor/ clean
+#	make -C examples/reactor/ clean
 	make -C examples/helloworld/ clean
 	make -C examples/libfuse/ clean
 	make -C examples/regression_test/ clean
@@ -96,7 +97,7 @@ clean:
 	make -C examples/perf/ clean
 	make -C examples/control_plane_proc/ clean
 	make -C examples/mkfs/ clean
-	make -C examples/xattr_test/ clean	
+#	make -C examples/xattr_test/ clean	
 
 distclean:
 	rm -f Makefile.bak *.o *.a *~ .depend $(LIB_NVFUSE)

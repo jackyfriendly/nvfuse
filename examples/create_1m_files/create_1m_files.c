@@ -630,7 +630,7 @@ int main(int argc, char *argv[])
 #endif
 
 	/* call lcore_recv() on every slave lcore */
-	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+	RTE_LCORE_FOREACH_WORKER(lcore_id) {
 		printf(" launch secondary lcore = %d \n", lcore_id);
 		rte_eal_remote_launch(rt_main, (void *)num_cores, lcore_id);
 		num_cores++;
